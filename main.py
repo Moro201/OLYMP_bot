@@ -1,3 +1,4 @@
+import os
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup
 )
@@ -5,17 +6,17 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, ContextTypes, ConversationHandler, filters
 )
+import asyncio
 
-import os
+TOKEN = os.getenv("TOKEN")  # Получаем токен из переменной окружения
 
-# === Настройки ===
-TOKEN = os.getenv("BOT_TOKEN")
-
+# === Названия групп и их ID ===
 CHATS = {
     "Test2": -1002501155082,
     "Test1": -1002499900889
 }
 
+# === Темы (название темы → {chat_id: thread_id}) ===
 TOPICS = {
     "Новости": {
         -1002501155082: 11,
@@ -104,14 +105,14 @@ async def enter_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             if update.message.photo:
                 photo = update.message.photo[-1].file_id
-                await context.bot.send_photo(
+                await update.bot.send_photo(
                     chat_id=chat_id,
                     message_thread_id=thread_id,
                     photo=photo,
                     caption=text
                 )
             elif update.message.text.lower() == "нет":
-                await context.bot.send_message(
+                await update.bot.send_message(
                     chat_id=chat_id,
                     message_thread_id=thread_id,
                     text=text
@@ -122,22 +123,28 @@ async def enter_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Сообщение разослано.")
     return ConversationHandler.END
 
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+app = ApplicationBuilder().token(TOKEN).build()
 
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            SELECT_CHATS: [CallbackQueryHandler(select_chats)],
-            SELECT_TOPIC: [CallbackQueryHandler(select_topic)],
-            ENTER_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, enter_message)],
-            ENTER_PHOTO: [MessageHandler(filters.PHOTO | filters.TEXT, enter_photo)],
-        },
-        fallbacks=[]
-    )
+conv = ConversationHandler(
+    entry_points=[CommandHandler("start", start)],
+    states={
+        SELECT_CHATS: [CallbackQueryHandler(select_chats)],
+        SELECT_TOPIC: [CallbackQueryHandler(select_topic)],
+        ENTER_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, enter_message)],
+        ENTER_PHOTO: [MessageHandler(filters.PHOTO | filters.TEXT, enter_photo)],
+    },
+    fallbacks=[]
+)
 
-    app.add_handler(conv)
-    app.run_polling()
+app.add_handler(conv)
+
+async def main():
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    print("🤖 Бот готов. Используй /start")
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
