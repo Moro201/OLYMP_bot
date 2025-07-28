@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 import asyncio
 
-TOKEN = os.getenv("TOKEN")  # Получаем токен из переменной окружения
+TOKEN = "8256701019:AAG9SQ2leFoBi1f5WyGz15L2_C7uuBYfF6A"
 
 # === Названия групп и их ID ===
 CHATS = {
