@@ -123,7 +123,8 @@ async def enter_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Сообщение разослано.")
     return ConversationHandler.END
 
-app = ApplicationBuilder().token(TOKEN).build()
+# Telegram bot app
+tg_app = ApplicationBuilder().token(TOKEN).build()
 
 conv = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
@@ -136,31 +137,30 @@ conv = ConversationHandler(
     fallbacks=[]
 )
 
-app.add_handler(conv)
+tg_app.add_handler(conv)
 
 async def main():
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
+    await tg_app.initialize()
+    await tg_app.start()
+    await tg_app.updater.start_polling()
     print("🤖 Бот готов. Используй /start")
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    import asyncio
+    import threading
+
+    # Flask-сервер для "пинга"
+    from flask import Flask
+
+    flask_app = Flask('')
+
+    @flask_app.route('/')
+    def home():
+        return "🤖 I'm alive!"
+
+    def run():
+        flask_app.run(host='0.0.0.0', port=8080)
+
+    threading.Thread(target=run).start()
+
     asyncio.run(main())
-
-# Flask-сервер для "пинга"
-from flask import Flask
-from threading import Thread
-
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "🤖 I'm alive!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-# Запуск сервера в отдельном потоке
-Thread(target=run).start()
