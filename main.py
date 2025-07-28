@@ -148,3 +148,19 @@ async def main():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
+
+# Flask-сервер для "пинга"
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "🤖 I'm alive!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+# Запуск сервера в отдельном потоке
+Thread(target=run).start()
