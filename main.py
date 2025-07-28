@@ -105,14 +105,14 @@ async def enter_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             if update.message.photo:
                 photo = update.message.photo[-1].file_id
-                await update.bot.send_photo(
+                await context.bot.send_photo(
                     chat_id=chat_id,
                     message_thread_id=thread_id,
                     photo=photo,
                     caption=text
                 )
             elif update.message.text.lower() == "нет":
-                await update.bot.send_message(
+                await context.bot.send_message(
                     chat_id=chat_id,
                     message_thread_id=thread_id,
                     text=text
@@ -123,8 +123,8 @@ async def enter_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Сообщение разослано.")
     return ConversationHandler.END
 
-# Telegram bot app
-tg_app = ApplicationBuilder().token(TOKEN).build()
+# === Настройка бота ===
+app = ApplicationBuilder().token(TOKEN).build()
 
 conv = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
@@ -137,30 +137,32 @@ conv = ConversationHandler(
     fallbacks=[]
 )
 
-tg_app.add_handler(conv)
+app.add_handler(conv)
 
+# === Основной цикл ===
 async def main():
-    await tg_app.initialize()
-    await tg_app.start()
-    await tg_app.updater.start_polling()
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
     print("🤖 Бот готов. Используй /start")
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    import threading
-
-    # Flask-сервер для "пинга"
-    from flask import Flask
-
-    flask_app = Flask('')
-
-    @flask_app.route('/')
-    def home():
-        return "🤖 I'm alive!"
-
-    def run():
-        flask_app.run(host='0.0.0.0', port=8080)
-
-    threading.Thread(target=run).start()
-
+    import asyncio
     asyncio.run(main())
+
+# === Flask-сервер для пинга ===
+from flask import Flask
+from threading import Thread
+
+ping_app = Flask('')
+
+@ping_app.route('/')
+def home():
+    return "🤖 I'm alive!"
+
+def run():
+    ping_app.run(host='0.0.0.0', port=8080)
+
+# Запуск Flask в фоне
+Thread(target=run).start()
