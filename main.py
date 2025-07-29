@@ -1,22 +1,22 @@
 import os
-from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup
-)
+from flask import Flask
+from threading import Thread
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, ContextTypes, ConversationHandler, filters
 )
-import asyncio
 
+# === Telegram Token ===
 TOKEN = "8256701019:AAG9SQ2leFoBi1f5WyGz15L2_C7uuBYfF6A"
 
-# === Названия групп и их ID ===
+# === Чаты и темы ===
 CHATS = {
     "Test2": -1002501155082,
     "Test1": -1002499900889
 }
 
-# === Темы (название темы → {chat_id: thread_id}) ===
 TOPICS = {
     "Новости": {
         -1002501155082: 11,
@@ -41,6 +41,8 @@ def build_chat_buttons(selected=None):
         buttons.append([InlineKeyboardButton(f"{checked}{name}", callback_data=name)])
     buttons.append([InlineKeyboardButton("➡ Далее", callback_data="next")])
     return buttons
+
+# === Telegram Handlers ===
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["selected_chats"] = set()
@@ -123,46 +125,42 @@ async def enter_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Сообщение разослано.")
     return ConversationHandler.END
 
-# === Настройка бота ===
-app = ApplicationBuilder().token(TOKEN).build()
+# === Запуск бота ===
 
-conv = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
-    states={
-        SELECT_CHATS: [CallbackQueryHandler(select_chats)],
-        SELECT_TOPIC: [CallbackQueryHandler(select_topic)],
-        ENTER_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, enter_message)],
-        ENTER_PHOTO: [MessageHandler(filters.PHOTO | filters.TEXT, enter_photo)],
-    },
-    fallbacks=[]
-)
+async def start_bot():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-app.add_handler(conv)
+    conv = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            SELECT_CHATS: [CallbackQueryHandler(select_chats)],
+            SELECT_TOPIC: [CallbackQueryHandler(select_topic)],
+            ENTER_MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, enter_message)],
+            ENTER_PHOTO: [MessageHandler(filters.PHOTO | filters.TEXT, enter_photo)],
+        },
+        fallbacks=[]
+    )
 
-# === Основной цикл ===
-async def main():
+    app.add_handler(conv)
+
     await app.initialize()
     await app.start()
     await app.updater.start_polling()
-    print("🤖 Бот готов. Используй /start")
-    await asyncio.Event().wait()
+    print("🤖 Бот запущен")
 
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+# === Flask-сервер ===
 
-# === Flask-сервер для пинга ===
-from flask import Flask
-from threading import Thread
+web_app = Flask(__name__)
 
-ping_app = Flask('')
-
-@ping_app.route('/')
-def home():
+@web_app.route('/')
+def index():
     return "🤖 I'm alive!"
 
-def run():
-    ping_app.run(host='0.0.0.0', port=8080)
+def run_flask():
+    web_app.run(host="0.0.0.0", port=8080)
 
-# Запуск Flask в фоне
-Thread(target=run).start()
+# === Запуск ===
+
+if __name__ == "__main__":
+    Thread(target=run_flask).start()
+    asyncio.run(start_bot())
