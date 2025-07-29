@@ -147,3 +147,20 @@ async def start_bot():
     await app.start()
     await app.updater.start_polling()
     print("🤖 Бот запущен")
+
+# === Flask-сервер ===
+
+web_app = Flask(__name__)
+
+@web_app.route('/')
+def index():
+    return "🤖 I'm alive!"
+
+def run_flask():
+    web_app.run(host="0.0.0.0", port=8080)
+
+# === Запуск ===
+
+if __name__ == "__main__":
+    Thread(target=run_flask).start()
+    asyncio.run(start_bot())
